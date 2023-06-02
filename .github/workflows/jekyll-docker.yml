@@ -1,0 +1,113 @@
+// Define input parameters
+extern double StopLoss = 10.0;              // Stop loss value in pips
+extern double TakeProfit = 20.0;            // Take profit value in pips
+extern int TradeVolume = 0.1;               // Initial trade volume
+extern int MaxPositions = 5;                // Maximum number of open positions
+extern int TrailingStop = 10;               // Trailing stop value in pips
+extern int TrailingStep = 5;                // Trailing stop step in pips
+extern string TradeComment = "Scalping EA"; // Trade comment
+
+// Define global variables
+int ticket = 0;
+double lotSize = 0;
+
+// Expert Advisor initialization function
+int init()
+{
+    // Set predefined variables
+    SetStopLoss(StopLoss);
+    SetTakeProfit(TakeProfit);
+
+    return (INIT_SUCCEEDED);
+}
+
+// Expert Advisor start function
+int start()
+{
+    // Check for open positions
+    if (!IsTradeAllowed())
+        return (0);
+
+    // Check for existing position
+    if (ticket == 0)
+    {
+        // Perform multiple time frame analysis
+        bool isBuySignal = CheckBuySignal();
+        bool isSellSignal = CheckSellSignal();
+
+        if (isBuySignal && !isSellSignal)
+        {
+            // Calculate position size dynamically
+            lotSize = CalculatePositionSize();
+
+            // Open a buy position
+            ticket = OrderSend(Symbol(), OP_BUY, lotSize, Ask, 0, 0, 0, TradeComment, 0, 0, Green);
+        }
+        else if (isSellSignal && !isBuySignal)
+        {
+            // Calculate position size dynamically
+            lotSize = CalculatePositionSize();
+
+            // Open a sell position
+            ticket = OrderSend(Symbol(), OP_SELL, lotSize, Bid, 0, 0, 0, TradeComment, 0, 0, Red);
+        }
+    }
+    else
+    {
+        // Check for trailing stop functionality
+        if (TrailingStop > 0)
+            SetTrailingStop();
+
+        // Check for position closure based on take profit or stop loss
+        if (OrderType() == OP_BUY)
+        {
+            if (Bid - OrderOpenPrice() >= TakeProfit * Point)
+                ClosePosition();
+
+            if (OrderOpenPrice() - Bid >= StopLoss * Point)
+                ClosePosition();
+        }
+        else if (OrderType() == OP_SELL)
+        {
+            if (OrderOpenPrice() - Ask >= TakeProfit * Point)
+                ClosePosition();
+
+            if (Ask - OrderOpenPrice() >= StopLoss * Point)
+                ClosePosition();
+        }
+    }
+
+    return (0);
+}
+
+// Check if trade is allowed
+bool IsTradeAllowed()
+{
+    if (IsTradeContextBusy())
+        return (false);
+
+    return (true);
+}
+
+// Check for buy signal
+bool CheckBuySignal()
+{
+    // Implement your buy signal logic here
+    // Return true if buy signal is detected, otherwise false
+    return false;
+}
+
+// Check for sell signal
+bool CheckSellSignal()
+{
+    // Implement your sell signal logic here
+    // Return true if sell signal is detected, otherwise false
+    return false;
+}
+
+// Calculate position size dynamically
+double CalculatePositionSize()
+{
+    double accountBalance = AccountBalance();
+    double maxRisk = 0.02; // Maximum risk per trade (2% of account balance)
+    double
